@@ -1,0 +1,4 @@
+# qctb_schema=qctb.report/1.0.0
+# qctb_mode=RRBS
+sample_id	reads_raw	bases_raw	reads_clean	bases_clean	clean_data_ratio	q20_raw_r1	q30_raw_r1	avg_len_raw_r1	q20_raw_r2	q30_raw_r2	avg_len_raw_r2	q20_clean_r1	q30_clean_r1	avg_len_clean_r1	q20_clean_r2	q30_clean_r2	avg_len_clean_r2	mapping_ratio	total_reads_pairs	aligned_reads_pairs	aligned_ratio	mapping_quality	duplicated_reads	duplication_ratio	methrix_total_cpgs	methrix_covered_cpgs	methrix_1x	methrix_2x	methrix_3x	methrix_4x	methrix_5x	methrix_10x	methrix_ann_covered_cpgs	methrix_promoter_count	methrix_promoter_percent	methrix_exon_count	methrix_exon_percent	methrix_intron_count	methrix_intron_percent	methrix_intergenic_count	methrix_intergenic_percent
+rrbs_sample	30	3000	24	2400	0.8000	91.3	81.2	100.0	92.3	82.2	101.0	93.3	83.2	99.0	94.3	84.2	98.0	80.00%	100	80	0.8000	42	10	10.00%	1000	800	800	700	600	500	400	100	800	200	25.000000	200	25.000000	200	25.000000	200	25.000000

@@ -1,0 +1,42 @@
+Bismark report for: userspace/458173f226c38b2b739fe69160c83f85e1c8b17f/workflow/trim/0531LPHSC70203_val_1.fq.gz and userspace/458173f226c38b2b739fe69160c83f85e1c8b17f/workflow/trim/0531LPHSC70203_val_2.fq.gz (version: v0.24.2)
+Bismark was run with Bowtie 2 against the bisulfite genome of /data_center_02/project/SR/zhengyanhua/beaverflow_25_517/inst/pdx/homo_sapiens/ with the specified options: -q --score-min L,0,-0.2 --ignore-quals --no-mixed --no-discordant --dovetail --maxins 500
+Option '--directional' specified (default mode): alignments to complementary strands (CTOT, CTOB) were ignored (i.e. not performed)
+
+Final Alignment report
+======================
+Sequence pairs analysed in total:	15352914
+Number of paired-end alignments with a unique best hit:	9721219
+Mapping efficiency:	63.3% 
+Sequence pairs with no alignments under any condition:	3456605
+Sequence pairs did not map uniquely:	2175090
+Sequence pairs which were discarded because genomic sequence could not be extracted:	0
+
+Number of sequence pairs with unique best (first) alignment came from the bowtie output:
+CT/GA/CT:	4856086	((converted) top strand)
+GA/CT/CT:	0	(complementary to (converted) top strand)
+GA/CT/GA:	0	(complementary to (converted) bottom strand)
+CT/GA/GA:	4865133	((converted) bottom strand)
+
+Number of alignments to (merely theoretical) complementary strands being rejected in total:	0
+
+Final Cytosine Methylation Report
+=================================
+Total number of C's analysed:	443069100
+
+Total methylated C's in CpG context:	35879939
+Total methylated C's in CHG context:	189890
+Total methylated C's in CHH context:	388153
+Total methylated C's in Unknown context:	1078
+
+Total unmethylated C's in CpG context:	38041075
+Total unmethylated C's in CHG context:	117072272
+Total unmethylated C's in CHH context:	251497771
+Total unmethylated C's in Unknown context:	187125
+
+C methylated in CpG context:	48.5%
+C methylated in CHG context:	0.2%
+C methylated in CHH context:	0.2%
+C methylated in Unknown context (CN or CHN):	0.6%
+
+
+Bismark completed in 0d 1h 56m 7s

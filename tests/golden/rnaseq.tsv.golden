@@ -1,0 +1,4 @@
+# qctb_schema=qctb.report/1.0.0
+# qctb_mode=RNA-seq
+sample_id	reads_raw	bases_raw	reads_clean	bases_clean	clean_data_ratio	q20_raw_r1	q30_raw_r1	avg_len_raw_r1	q20_raw_r2	q30_raw_r2	avg_len_raw_r2	q20_clean_r1	q30_clean_r1	avg_len_clean_r1	q20_clean_r2	q30_clean_r2	avg_len_clean_r2	mapping_ratio	total_reads	uniquely_mapped_reads	uniquely_mapped_ratio
+rna_sample	30	3000	24	2400	0.8000	91.3	81.2	100.0	92.3	82.2	101.0	93.3	83.2	99.0	94.3	84.2	98.0	75.00%	200	150	0.7500

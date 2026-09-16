@@ -1,0 +1,11 @@
+#========================================#
+#       enva v0.1.0                        #
+#  Micromamba Environment Manager          #
+#  For Bioinformatics Workflows            #
+#========================================#
+
+file	format	type	num_seqs	sum_len	min_len	avg_len	max_len	Q1	Q2	Q3	sum_gap	N50	N50_num	Q20(%)	Q30(%)	AvgQual	GC(%)	sum_n
+F6703_372760_R1.fastq.gz	FASTQ	DNA	24065275	3609791250	150	150.0	150	150	150	150	0	150	1	99	97	31.93	52.07	644935
+F6703_372760_R2.fastq.gz	FASTQ	DNA	24065275	3609791250	150	150.0	150	150	150	150	0	150	1	96	93	25.36	53.58	2586524
+F6703_372760_val_1.fq.gz	FASTQ	DNA	23554472	3341014714	20	141.8	143	142	143	143	0	143	1	100	97	32.31	51.79	528376
+F6703_372760_val_2.fq.gz	FASTQ	DNA	23554472	3273740490	20	139.0	141	140	141	141	0	141	1	98	95	27.93	53.55	1419074

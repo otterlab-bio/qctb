@@ -1,0 +1,11 @@
+PASS	Basic Statistics	F6703_372760_R2.fastq.gz
+PASS	Per base sequence quality	F6703_372760_R2.fastq.gz
+FAIL	Per tile sequence quality	F6703_372760_R2.fastq.gz
+PASS	Per sequence quality scores	F6703_372760_R2.fastq.gz
+WARN	Per base sequence content	F6703_372760_R2.fastq.gz
+WARN	Per sequence GC content	F6703_372760_R2.fastq.gz
+PASS	Per base N content	F6703_372760_R2.fastq.gz
+PASS	Sequence Length Distribution	F6703_372760_R2.fastq.gz
+FAIL	Sequence Duplication Levels	F6703_372760_R2.fastq.gz
+WARN	Overrepresented sequences	F6703_372760_R2.fastq.gz
+PASS	Adapter Content	F6703_372760_R2.fastq.gz

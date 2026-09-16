@@ -1,0 +1,141 @@
+name: qctb CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  report-contract:
+    name: Rust quality gates and real-fixture report contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout qctb
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo build
+        uses: Swatinem/rust-cache@v2
+
+      - name: Prepare evidence directory
+        run: mkdir -p ci-artifacts
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check 2>&1 | tee ci-artifacts/cargo-fmt.log
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --all-targets --all-features --locked -- -D warnings 2>&1 | tee ci-artifacts/cargo-clippy.log
+
+      - name: Run test suite
+        run: cargo test --all-targets --all-features --locked 2>&1 | tee ci-artifacts/cargo-test.log
+
+      - name: Build release binary
+        run: cargo build --release --locked 2>&1 | tee ci-artifacts/cargo-build.log
+
+      - name: Standard PDX report from real fixtures
+        run: |
+          set -euo pipefail
+          workspace="$(mktemp -d)"
+          mkdir -p "$workspace/bismark"
+          cp testdata/bismark/0531LPHSC70203_val_1_bismark_bt2_PE_report.txt \
+            "$workspace/bismark/F6703_372760_val_1_bismark_bt2_PE_report.txt"
+          cat > "$workspace/config.yaml" <<EOF
+          SIDs:
+            - F6703_372760
+          qcDir: testdata
+          qcDir_before: testdata/fastqcx_raw
+          qcDir_after: testdata/fastqcx_clean
+          trimDir: testdata/trim
+          bsmapDir: $workspace/bismark
+          outDir_mCall: ''
+          workflow:
+            mode: PDX
+            species:
+              graft: human
+          EOF
+          ./target/release/qctb \
+            --config "$workspace/config.yaml" \
+            --output ci-artifacts/qctb-pdx.tsv \
+            --format tsv 2>&1 | tee ci-artifacts/qctb-pdx-tsv.log
+          ./target/release/qctb \
+            --config "$workspace/config.yaml" \
+            --output ci-artifacts/qctb-pdx.xlsx \
+            --format xlsx 2>&1 | tee ci-artifacts/qctb-pdx-xlsx.log
+
+      - name: RNA-seq report from real fixtures
+        run: |
+          set -euo pipefail
+          workspace="$(mktemp -d)"
+          cat > "$workspace/config.yaml" <<EOF
+          SIDs:
+            - F6703_372760
+          qcDir: testdata
+          qcDir_before: testdata/fastqcx_raw
+          qcDir_after: testdata/fastqcx_clean
+          trimDir: testdata/trim
+          bsmapDir: testdata/star
+          outDir_mCall: ''
+          workflow:
+            mode: RNASEQ
+            species:
+              graft: human
+          EOF
+          ./target/release/qctb \
+            --config "$workspace/config.yaml" \
+            --output ci-artifacts/qctb-rnaseq.tsv \
+            --format tsv \
+            --rnaseq 2>&1 | tee ci-artifacts/qctb-rnaseq.log
+
+      - name: Assert report schema contract
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          pdx_report = Path('ci-artifacts/qctb-pdx.tsv').read_text()
+          assert pdx_report.startswith('# qctb_schema=qctb.report/1.0.0\n# qctb_mode=PDX\n'), pdx_report[:120]
+          assert 'F6703_372760' in pdx_report
+
+          rnaseq_report = Path('ci-artifacts/qctb-rnaseq.tsv').read_text()
+          assert rnaseq_report.startswith('# qctb_schema=qctb.report/1.0.0\n# qctb_mode=RNA-seq\n'), rnaseq_report[:120]
+          assert 'F6703_372760' in rnaseq_report
+
+          assert Path('ci-artifacts/qctb-pdx.xlsx').stat().st_size > 0
+          print('qctb report schema contract passed for PDX, RNA-seq, and Excel outputs')
+          PY
+
+      - name: Upload qctb evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qctb-report-evidence
+          path: ci-artifacts/
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Job summary
+        if: always()
+        continue-on-error: true
+        run: |
+          bash scripts/ci/job-summary.sh \
+            --verdict "${{ job.status }}" \
+            --title "qctb — QC report contract" \
+            --checked "Formatting, Clippy with warnings denied, the test suite, a release build, and two report generations on real fixtures — a standard PDX report and an RNA-seq report — whose schema is asserted." \
+            --check "cargo fmt / clippy -D warnings|clean|see step log|-" \
+            --check "Test suite|all pass|see step log|-" \
+            --check "Release build|binary produced|see step log|-" \
+            --check "Standard PDX report|generated from real fixtures|see step log|-" \
+            --check "RNA-seq report|generated from real fixtures|see step log|-" \
+            --check "Report schema contract|fields and types as declared|see step log|-" \
+            --artifact "qctb-report-evidence" \
+            --limit "Report structure and content contract on the CI fixtures. It asserts report shape, not downstream biological interpretation."
