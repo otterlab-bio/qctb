@@ -183,7 +183,8 @@ fn canonical_workflow_mode(scenario: &str) -> Result<&'static str> {
     match scenario {
         "rrbs" => Ok("RRBS"),
         "wgbs" => Ok("WGBS"),
-        "bs-pdx" | "rna-pdx" => Ok("PDX"),
+        "bs-pdx" => Ok("BEAVERPDX"),
+        "rna-pdx" => Ok("BEAVERRNASEQPDX"),
         "rnaseq" => Ok("RNASEQ"),
         _ => anyhow::bail!("Unsupported otter.run/v1 workflow scenario: {scenario}"),
     }
@@ -229,7 +230,7 @@ fn load_canonical_run_config(canonical: CanonicalRunConfig) -> Result<QCConfig> 
 
     let work_directory = canonical.paths.work;
     let quality_control_directory = work_directory.join("QC");
-    let methylation_directory = if workflow_mode == "RNASEQ" {
+    let analysis_directory = if matches!(workflow_mode.as_str(), "RNASEQ" | "BEAVERRNASEQPDX") {
         work_directory.join("expression")
     } else {
         work_directory.join("mCall")
@@ -246,7 +247,7 @@ fn load_canonical_run_config(canonical: CanonicalRunConfig) -> Result<QCConfig> 
             .join("qualimap")
             .display()
             .to_string(),
-        outdir_mcall: methylation_directory.display().to_string(),
+        outdir_mcall: analysis_directory.display().to_string(),
         qcdir_before: Some(work_directory.join("fastqc_raw").display().to_string()),
         qcdir_after: Some(work_directory.join("fastqc_clean").display().to_string()),
     })
@@ -359,6 +360,15 @@ mod tests {
     use tempfile::NamedTempFile;
 
     #[test]
+    fn canonical_pdx_modes_preserve_their_parser_family() {
+        assert_eq!(canonical_workflow_mode("bs-pdx").unwrap(), "BEAVERPDX");
+        assert_eq!(
+            canonical_workflow_mode("rna-pdx").unwrap(),
+            "BEAVERRNASEQPDX"
+        );
+    }
+
+    #[test]
     fn test_load_config_old_format() -> Result<()> {
         let mut temp_file = NamedTempFile::new()?;
         writeln!(temp_file, "SIDs:")?;
@@ -462,7 +472,7 @@ paths:
         let config = load_config(temp_file.path())?;
         assert_eq!(config.SIDs, vec!["tumor_sample", "normal_sample"]);
         assert_eq!(config.graft.as_deref(), Some("hg38"));
-        assert_eq!(config.workflow_mode.as_deref(), Some("PDX"));
+        assert_eq!(config.workflow_mode.as_deref(), Some("BEAVERPDX"));
         assert_eq!(config.qcDir, "/analysis/runs/run-example/work/QC");
         assert_eq!(config.trimDir, "/analysis/runs/run-example/work/trim");
         assert_eq!(config.bsmap_dir, "/analysis/runs/run-example/work/bsmap");
@@ -472,6 +482,37 @@ paths:
         );
         assert_eq!(config.outdir_mcall, "/analysis/runs/run-example/work/mCall");
 
+        Ok(())
+    }
+
+    #[test]
+    fn canonical_rna_pdx_selects_rna_parser_family_and_expression_directory() -> Result<()> {
+        let mut temp_file = NamedTempFile::new()?;
+        temp_file.write_all(
+            br#"schema_version: otter.run/v1
+run:
+  immutable: true
+workflow:
+  scenario: rna-pdx
+samples:
+  - id: tumor_sample
+references:
+  resolved:
+    - role: graft
+      id: hg38
+    - role: host
+      id: mm39
+paths:
+  work: /analysis/runs/run-rna-pdx/work
+"#,
+        )?;
+
+        let config = load_config(temp_file.path())?;
+        assert_eq!(config.workflow_mode.as_deref(), Some("BEAVERRNASEQPDX"));
+        assert_eq!(
+            config.outdir_mcall,
+            "/analysis/runs/run-rna-pdx/work/expression"
+        );
         Ok(())
     }
 

@@ -30,6 +30,10 @@ fn cell_as_string(cell: Option<&Data>) -> String {
     }
 }
 
+fn row_is_blank(row: &[Data]) -> bool {
+    row.iter().all(|cell| cell_as_string(Some(cell)).is_empty())
+}
+
 fn cell_as_u64(cell: Option<&Data>, field: &str) -> Result<u64> {
     let raw = cell_as_string(cell);
     let value: f64 = raw
@@ -133,7 +137,10 @@ pub fn parse_methx_coverage_xlsx(path: &str) -> Result<Vec<MethrixCoverageRow>> 
     for row in rows {
         let sample = cell_as_string(row.get(sample_index));
         if sample.is_empty() {
-            continue;
+            if row_is_blank(row) {
+                continue;
+            }
+            bail!("Methrix coverage row is missing Sample in {}", path);
         }
         if !seen_samples.insert(sample.clone()) {
             bail!("Duplicate Methrix coverage sample '{}' in {}", sample, path);
@@ -186,7 +193,10 @@ pub fn parse_methx_annotation_by_sample_xlsx(
     for row in rows {
         let sample = cell_as_string(row.get(sample_index));
         if sample.is_empty() {
-            continue;
+            if row_is_blank(row) {
+                continue;
+            }
+            bail!("Methrix annotation row is missing sample in {}", path);
         }
         if !seen_samples.insert(sample.clone()) {
             bail!(
@@ -285,6 +295,63 @@ mod tests {
             sheet.write_number(1, (column + 2) as u16, value)?;
         }
         workbook.save(path)?;
+        Ok(())
+    }
+
+    fn write_coverage_without_sample(path: &std::path::Path) -> Result<()> {
+        let mut workbook = Workbook::new();
+        let sheet = workbook.add_worksheet();
+        for (column, header) in [
+            "Sample",
+            "Total CpGs",
+            "Covered CpGs",
+            "1X",
+            "2X",
+            "3X",
+            "4X",
+            "5X",
+            "10X",
+        ]
+        .iter()
+        .enumerate()
+        {
+            sheet.write_string(0, column as u16, *header)?;
+        }
+        for (column, value) in [100.0, 80.0, 80.0, 70.0, 60.0, 50.0, 40.0, 10.0]
+            .iter()
+            .enumerate()
+        {
+            sheet.write_number(1, (column + 1) as u16, *value)?;
+        }
+        workbook.save(path)?;
+        Ok(())
+    }
+
+    fn write_annotation_without_sample(path: &std::path::Path) -> Result<()> {
+        let mut workbook = Workbook::new();
+        let sheet = workbook.add_worksheet();
+        sheet.set_name("ChIPseeker_By_Sample")?;
+        sheet.write_string(0, 0, "sample")?;
+        sheet.write_string(0, 1, "covered_cpgs")?;
+        for (column, metric) in CONTRACT_ANNOTATION_METRICS.iter().enumerate() {
+            sheet.write_string(0, (column + 2) as u16, *metric)?;
+            sheet.write_number(1, (column + 2) as u16, 10.0)?;
+        }
+        sheet.write_number(1, 1, 80.0)?;
+        workbook.save(path)?;
+        Ok(())
+    }
+
+    #[test]
+    fn populated_rows_without_sample_identity_fail_closed() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let coverage_path = temp_dir.path().join("coverage.xlsx");
+        write_coverage_without_sample(&coverage_path)?;
+        assert!(parse_methx_coverage_xlsx(coverage_path.to_str().unwrap()).is_err());
+
+        let annotation_path = temp_dir.path().join("annotation.xlsx");
+        write_annotation_without_sample(&annotation_path)?;
+        assert!(parse_methx_annotation_by_sample_xlsx(annotation_path.to_str().unwrap()).is_err());
         Ok(())
     }
 

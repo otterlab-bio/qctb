@@ -67,13 +67,43 @@ fn resolve_config_path(cli: &Cli) -> Result<PathBuf> {
     Ok(run_directory.join("run.yaml"))
 }
 
+fn workflow_uses_rnaseq_parser(mode: &str) -> bool {
+    matches!(
+        mode.trim().to_ascii_uppercase().as_str(),
+        "RNASEQ" | "RNA-SEQ" | "RNA-PDX" | "BEAVERRNASEQPDX"
+    )
+}
+
+fn resolve_report_mode(
+    workflow_mode: Option<&str>,
+    rnaseq: bool,
+) -> Result<qc_summary::ReportMode> {
+    let declared_mode = workflow_mode.map(str::trim).filter(|mode| !mode.is_empty());
+    let declared_rnaseq = declared_mode.is_some_and(workflow_uses_rnaseq_parser);
+
+    if declared_rnaseq && !rnaseq {
+        anyhow::bail!(
+            "Configuration declares an RNA-seq workflow; invoke qctb with --rnaseq to select RNA parsers"
+        );
+    }
+    if rnaseq && !declared_rnaseq {
+        if let Some(mode) = declared_mode {
+            anyhow::bail!("--rnaseq conflicts with configured workflow mode '{mode}'");
+        }
+    }
+
+    Ok(qc_summary::ReportMode::from_workflow_mode(
+        declared_mode,
+        rnaseq,
+    ))
+}
+
 fn main() -> Result<()> {
     let cli = Cli::parse();
     let config_path = resolve_config_path(&cli)?;
     let qc_config = qc_summary::load_config(&config_path)
         .with_context(|| format!("Failed to load config from: {}", config_path.display()))?;
-    let report_mode =
-        qc_summary::ReportMode::from_workflow_mode(qc_config.workflow_mode.as_deref(), cli.rnaseq);
+    let report_mode = resolve_report_mode(qc_config.workflow_mode.as_deref(), cli.rnaseq)?;
 
     println!(
         "Processing {} samples in {} mode...",
@@ -83,7 +113,7 @@ fn main() -> Result<()> {
     println!("Output format: {}", cli.format.as_str());
     println!("Output schema: {}", qc_summary::REPORT_SCHEMA_ID);
 
-    if cli.rnaseq {
+    if report_mode == qc_summary::ReportMode::RnaSeq {
         let summaries = qc_summary::process_all_samples_rnaseq(&qc_config)
             .with_context(|| "Failed to process samples in RNA-seq mode")?;
         println!("Successfully processed {} samples", summaries.len());
@@ -96,11 +126,6 @@ fn main() -> Result<()> {
             }
         }
     } else {
-        if report_mode == qc_summary::ReportMode::RnaSeq {
-            anyhow::bail!(
-                "Configuration declares RNA-seq mode; invoke qctb with --rnaseq to select RNA parsers"
-            );
-        }
         let summaries = qc_summary::process_all_samples(&qc_config)
             .with_context(|| "Failed to process samples")?;
         println!("Successfully processed {} samples", summaries.len());
@@ -160,6 +185,34 @@ mod cli_tests {
             "summary.xlsx",
         ]);
         assert!(conflicting_cli.is_err());
+    }
+
+    #[test]
+    fn rnaseq_flag_must_match_the_declared_workflow_mode() {
+        assert_eq!(
+            resolve_report_mode(Some("RNASEQ"), true).unwrap(),
+            qc_summary::ReportMode::RnaSeq
+        );
+        assert_eq!(
+            resolve_report_mode(Some("BEAVERRNASEQPDX"), true).unwrap(),
+            qc_summary::ReportMode::RnaSeq
+        );
+        assert_eq!(
+            resolve_report_mode(Some("RNA-PDX"), true).unwrap(),
+            qc_summary::ReportMode::RnaSeq
+        );
+        assert!(resolve_report_mode(Some("RNASEQ"), false).is_err());
+        assert!(resolve_report_mode(Some("RRBS"), true).is_err());
+        assert!(resolve_report_mode(Some("BEAVERPDX"), true).is_err());
+
+        assert_eq!(
+            resolve_report_mode(None, true).unwrap(),
+            qc_summary::ReportMode::RnaSeq
+        );
+        assert_eq!(
+            resolve_report_mode(None, false).unwrap(),
+            qc_summary::ReportMode::Standard
+        );
     }
 
     #[test]

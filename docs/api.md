@@ -17,7 +17,7 @@ qctb [OPTIONS]
 - `--config-dir <DIRECTORY>` - Otter run directory containing `run.yaml` (required unless `--config` is supplied)
 - `--output <FILE>` - Output file path (required)
 - `--format <fmt>` - Output format: xlsx or tsv (default: xlsx)
-- `--rnaseq` - Enable RNA-seq mode (use RNA-seq specific metrics)
+- `--rnaseq` - Select RNA-seq parsers; required when the configuration declares RNA-seq or RNA-PDX, and rejected for other explicit modes
 
 **Standard Mode**: Parses FastQC-compatible `fastqcx` Seqkit Statistics, Trim Galore, Bismark, Qualimap, and optional Methrix QC outputs produced by `methx`.
 **RNA-seq Mode**: Parses FastQC-compatible `fastqcx` Seqkit Statistics, Trim Galore, and STAR outputs.
