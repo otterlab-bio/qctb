@@ -71,7 +71,7 @@ qctb \
 | `--config-dir` | Otter run directory containing `run.yaml`. |
 | `--output` | Required Excel or TSV output path. |
 | `--format` | Lowercase `xlsx` or `tsv`; default is `xlsx`. |
-| `--rnaseq` | Select RNA-seq-specific parsers and metrics. |
+| `--rnaseq` | Select RNA-seq parsers; required for declared RNA-seq/RNA-PDX modes, rejected for other explicit modes. |
 
 ## Output
 
