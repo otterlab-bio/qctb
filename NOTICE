@@ -1,0 +1,7 @@
+QCTB project-authored source code and documentation are licensed under the MIT
+License in `LICENSE`.
+
+The Qualimap report fixture under `testdata/qualimap/` includes third-party
+CSS, JavaScript, and image assets with embedded copyright notices. Those
+fixture assets retain their original copyright and licensing terms; the QCTB
+MIT License does not alter them.
